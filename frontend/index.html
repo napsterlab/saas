@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIE Gestion Commerciale — SaaS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Styles identiques au fichier original, avec quelques ajouts pour les fournisseurs -->
+  <style>
+    /* ... (tous les styles du fichier original, voir ci-dessous pour les ajouts) ... */
+    
+    /* Ajout pour la page Fournisseurs */
+    #page-fournisseurs .fournisseur-badge {
+      background: #EDE9FE;
+      color: #7C3AED;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+    }
+    
+    /* Ajout pour la personnalisation des factures */
+    .template-editor {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .template-editor .column-toggle {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .template-editor .column-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .template-editor .column-toggle label:hover {
+      background: #F1F5F9;
+    }
+    .template-editor .column-toggle input[type="checkbox"] {
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo-badge">CIE</div>
+    <div class="company-name" id="sidebar-company-name">Chargement...</div>
+    <div class="tagline" id="sidebar-company-tagline">Gestion Commerciale</div>
+  </div>
+  <nav>
+    <div class="nav-section-label">Principal</div>
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <span class="nav-icon">🏠</span><span>Tableau de Bord</span>
+    </div>
+    <div class="nav-item" onclick="navigate('devis')">
+      <span class="nav-icon">📄</span><span>Devis</span>
+      <span class="nav-badge" id="badge-devis">0</span>
+    </div>
+    <div class="nav-item" onclick="navigate('factures')">
+      <span class="nav-icon">🧾</span><span>Factures</span>
+      <span class="nav-badge" id="badge-factures" style="display:none">0</span>
+    </div>
+    <div class="nav-section-label">Gestion</div>
+    <div class="nav-item" onclick="navigate('produits')">
+      <span class="nav-icon">📦</span><span>Produits & Services</span>
+    </div>
+    <div class="nav-item" onclick="navigate('clients')">
+      <span class="nav-icon">👥</span><span>Clients</span>
+    </div>
+    <div class="nav-item" onclick="navigate('fournisseurs')">
+      <span class="nav-icon">🏭</span><span>Fournisseurs</span>
+    </div>
+    <div class="nav-section-label">Analyse</div>
+    <div class="nav-item" onclick="navigate('rapports')">
+      <span class="nav-icon">📊</span><span>Rapports</span>
+    </div>
+    <div class="nav-item" onclick="navigate('parametres')">
+      <span class="nav-icon">⚙️</span><span>Paramètres</span>
+    </div>
+    <div class="nav-section-label" style="margin-top:20px;">
+      <span style="color:rgba(255,255,255,0.3);font-size:10px;">👤 <span id="user-email">user@email.com</span></span>
+    </div>
+    <div class="nav-item" onclick="logout()" style="color:rgba(255,255,255,0.5);">
+      <span class="nav-icon">🚪</span><span>Déconnexion</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">v2.0 — SaaS</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Tableau de Bord</div>
+    </div>
+    <div class="topbar-actions">
+      <span style="font-size:12px;color:var(--text-muted)">📅 <span id="topbar-date"></span></span>
+      <button class="btn btn-accent btn-sm" onclick="quickAction()">+ Nouveau</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD (identique) -->
+  <div class="page active" id="page-dashboard">
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Factures ce mois</div>
+        <div class="kpi-value" id="kpi-mois">0 MAD</div>
+        <div class="kpi-sub" id="kpi-mois-sub">0 facture(s)</div>
+        <div class="kpi-icon">🧾</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Devis en attente</div>
+        <div class="kpi-value" id="kpi-devis">0</div>
+        <div class="kpi-sub">À valider</div>
+        <div class="kpi-icon">📄</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Factures impayées</div>
+        <div class="kpi-value" id="kpi-impaye">0 MAD</div>
+        <div class="kpi-sub" id="kpi-impaye-sub">0 facture(s)</div>
+        <div class="kpi-icon">⚠️</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">CA Annuel</div>
+        <div class="kpi-value" id="kpi-ca">0 MAD</div>
+        <div class="kpi-sub" id="kpi-ca-sub">Année en cours</div>
+        <div class="kpi-icon">📈</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:20px;margin-bottom:24px;">
+      <div class="card">
+        <div class="card-header"><span class="card-title">📊 CA Mensuel — <span id="chart-year"></span></span></div>
+        <div class="chart-container"><div class="bar-chart" id="bar-chart"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">💳 État des paiements</span></div>
+        <div style="padding:16px 20px;"><div id="payment-stats"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🕐 Activité récente</span>
+        <button class="btn btn-sm btn-outline" onclick="navigate('factures')">Voir tout</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>N°</th><th>Type</th><th>Client</th><th>Date</th><th>Total TTC</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="recent-activity"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEVIS (identique) -->
+  <div class="page" id="page-devis">
+    <div class="section-header">
+      <div><h1>Devis</h1><div class="breadcrumb">Gestion des devis commerciaux</div></div>
+      <button class="btn btn-primary" onclick="openDocModal('devis')">+ Nouveau Devis</button>
+    </div>
+    <div class="filter-bar">
+      <div class="search-input" style="min-width:260px;">
+        <input class="form-control" id="devis-search" placeholder="Rechercher..." oninput="renderDevisList()">
+      </div>
+      <select class="form-control" style="width:160px;" id="devis-status-filter" onchange="renderDevisList()">
+        <option value="">Tous</option>
+        <option value="en_attente">En attente</option>
+        <option value="accepte">Accepté</option>
+        <option value="refuse">Refusé</option>
+        <option value="expire">Expiré</option>
+      </select>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>N°</th><th>Client</th><th>Date</th><th>Objet</th><th>Total HT</th><th>Total TTC</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="devis-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FACTURES -->
+  <div class="page" id="page-factures">
+    <div class="section-header">
+      <div><h1>Factures</h1><div class="breadcrumb">Facturation et suivi des paiements</div></div>
+      <button class="btn btn-primary" onclick="openDocModal('facture')">+ Nouvelle Facture</button>
+    </div>
+    <div class="filter-bar">
+      <div class="search-input" style="min-width:260px;">
+        <input class="form-control" id="fac-search" placeholder="Rechercher..." oninput="renderFacturesList()">
+      </div>
+      <select class="form-control" style="width:180px;" id="fac-status-filter" onchange="renderFacturesList()">
+        <option value="">Tous</option>
+        <option value="payee">Payée</option>
+        <option value="en_attente">En attente</option>
+        <option value="en_retard">En retard</option>
+        <option value="partielle">Partiellement payée</option>
+      </select>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>N°</th><th>Client</th><th>Date</th><th>Objet</th><th>Total HT</th><th>TVA</th><th>Total TTC</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="factures-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUITS -->
+  <div class="page" id="page-produits">
+    <div class="section-header">
+      <div><h1>Produits & Services</h1><div class="breadcrumb">Catalogue de produits et tarifs</div></div>
+      <button class="btn btn-primary" onclick="openProductModal()">+ Nouveau Produit</button>
+    </div>
+    <div class="filter-bar">
+      <div class="search-input" style="min-width:260px;">
+        <input class="form-control" id="prod-search" placeholder="Rechercher..." oninput="renderProductsList()">
+      </div>
+      <select class="form-control" style="width:180px;" id="prod-cat-filter" onchange="renderProductsList()">
+        <option value="">Toutes catégories</option>
+        <option value="Câblage">Câblage</option>
+        <option value="Appareillage">Appareillage</option>
+        <option value="Éclairage">Éclairage</option>
+        <option value="Plomberie">Plomberie</option>
+        <option value="Climatisation">Climatisation</option>
+        <option value="Main d'œuvre">Main d'œuvre</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Code</th><th>Désignation</th><th>Catégorie</th><th>Unité</th><th>Prix HT</th><th>TVA</th><th>Fournisseur</th><th>Actions</th></tr></thead>
+          <tbody id="produits-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div class="page" id="page-clients">
+    <div class="section-header">
+      <div><h1>Clients</h1><div class="breadcrumb">Gestion du portefeuille clients</div></div>
+      <button class="btn btn-primary" onclick="openClientModal()">+ Nouveau Client</button>
+    </div>
+    <div class="filter-bar">
+      <div class="search-input" style="min-width:260px;">
+        <input class="form-control" id="client-search" placeholder="Rechercher..." oninput="renderClientsList()">
+      </div>
+      <select class="form-control" style="width:180px;" id="client-type-filter" onchange="renderClientsList()">
+        <option value="">Tous</option>
+        <option value="Particulier">Particulier</option>
+        <option value="Entreprise">Entreprise</option>
+        <option value="Administration">Administration</option>
+      </select>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Nom</th><th>Type</th><th>ICE</th><th>Ville</th><th>Téléphone</th><th>Email</th><th>Factures</th><th>Actions</th></tr></thead>
+          <tbody id="clients-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOURNISSEURS (NOUVEAU) -->
+  <div class="page" id="page-fournisseurs">
+    <div class="section-header">
+      <div><h1>Fournisseurs</h1><div class="breadcrumb">Gestion des fournisseurs et achats</div></div>
+      <button class="btn btn-primary" onclick="openFournisseurModal()">+ Nouveau Fournisseur</button>
+    </div>
+    <div class="filter-bar">
+      <div class="search-input" style="min-width:260px;">
+        <input class="form-control" id="fournisseur-search" placeholder="Rechercher..." oninput="renderFournisseursList()">
+      </div>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Nom</th><th>Type</th><th>ICE</th><th>Ville</th><th>Téléphone</th><th>Email</th><th>Produits</th><th>Actions</th></tr></thead>
+          <tbody id="fournisseurs-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAPPORTS -->
+  <div class="page" id="page-rapports">
+    <div class="section-header">
+      <div><h1>Rapports</h1><div class="breadcrumb">Analyse de l'activité commerciale</div></div>
+      <button class="btn btn-outline" onclick="exportCSV()">⬇ Exporter CSV</button>
+    </div>
+    <div class="filter-bar">
+      <select class="form-control" style="width:180px;" id="rapport-periode" onchange="renderRapports()">
+        <option value="semaine">Cette semaine</option>
+        <option value="mois" selected>Ce mois</option>
+        <option value="trimestre">Ce trimestre</option>
+        <option value="annee">Cette année</option>
+      </select>
+    </div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);" id="rapport-kpis"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
+      <div class="card">
+        <div class="card-header"><span class="card-title">🏆 Top Produits</span></div>
+        <div style="padding:16px 20px;" id="top-produits"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">👥 Top Clients</span></div>
+        <div style="padding:16px 20px;" id="top-clients"></div>
+      </div>
+    </div>
+    <div class="card mt-2">
+      <div class="card-header"><span class="card-title">💰 État des paiements détaillé</span></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>N°</th><th>Client</th><th>Date</th><th>Total TTC</th><th>Statut</th></tr></thead>
+          <tbody id="rapport-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARAMÈTRES -->
+  <div class="page" id="page-parametres">
+    <div class="section-header">
+      <div><h1>Paramètres</h1><div class="breadcrumb">Configuration de l'application</div></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-accent" onclick="exportAllData()">💾 Exporter toutes les données</button>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Enregistrer</button>
+      </div>
+    </div>
+
+    <div id="private-mode-alert" style="display:none;background:#FEF3C7;border-left:4px solid #F59E0B;padding:12px 16px;margin-bottom:20px;border-radius:8px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">⚠️</span>
+        <div style="flex:1;">
+          <strong style="color:#92400E;">Navigation privée détectée</strong>
+          <p style="font-size:12px;color:#78350F;margin:4px 0 0;">Les données seront perdues à la fermeture du navigateur.</p>
+        </div>
+        <button onclick="document.getElementById('private-mode-alert').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;">✕</button>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('tab-societe', this)">🏢 Société</button>
+      <button class="tab-btn" onclick="switchTab('tab-numerotation', this)">🔢 Numérotation</button>
+      <button class="tab-btn" onclick="switchTab('tab-mentions', this)">📜 Mentions</button>
+      <button class="tab-btn" onclick="switchTab('tab-template', this)">📄 Template Facture</button>
+      <button class="tab-btn" onclick="switchTab('tab-sauvegarde', this)">💿 Sauvegarde</button>
+      <button class="tab-btn" onclick="switchTab('tab-danger', this)">⚠️ Danger</button>
+    </div>
+
+    <!-- TAB SOCIÉTÉ -->
+    <div class="tab-content active" id="tab-societe">
+      <div style="max-width:760px;">
+        <div class="card" style="padding:24px;">
+          <div class="grid-2">
+            <div class="form-group"><label class="form-label">Raison sociale</label><input class="form-control" id="s-nom"></div>
+            <div class="form-group"><label class="form-label">Tagline</label><input class="form-control" id="s-tagline"></div>
+            <div class="form-group"><label class="form-label">Adresse</label><input class="form-control" id="s-adresse"></div>
+            <div class="form-group"><label class="form-label">Téléphone / Fax</label><input class="form-control" id="s-tel"></div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="s-email"></div>
+            <div class="form-group"><label class="form-label">Capital</label><input class="form-control" id="s-capital"></div>
+            <div class="form-group"><label class="form-label">ICE</label><input class="form-control" id="s-ice"></div>
+            <div class="form-group"><label class="form-label">RC</label><input class="form-control" id="s-rc"></div>
+            <div class="form-group"><label class="form-label">Patente</label><input class="form-control" id="s-patente"></div>
+            <div class="form-group"><label class="form-label">IF</label><input class="form-control" id="s-if"></div>
+            <div class="form-group"><label class="form-label">CNSS</label><input class="form-control" id="s-cnss"></div>
+            <div class="form-group"><label class="form-label">TVA par défaut (%)</label>
+              <select class="form-control" id="s-tva">
+                <option value="0">0%</option><option value="7">7%</option><option value="10">10%</option>
+                <option value="14">14%</option><option value="20" selected>20%</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group mt-2"><label class="form-label">RIB / Domiciliation bancaire</label><textarea class="form-control" id="s-rib" rows="3"></textarea></div>
+          <div class="form-group"><label class="form-label">Logo (URL)</label><input class="form-control" id="s-logo" placeholder="https://..."></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB NUMÉROTATION -->
+    <div class="tab-content" id="tab-numerotation">
+      <div style="max-width:500px;" class="card"><div style="padding:24px;">
+        <div class="form-group"><label class="form-label">Préfixe Devis</label><input class="form-control" id="s-prefix-devis"></div>
+        <div class="form-group"><label class="form-label">Préfixe Facture</label><input class="form-control" id="s-prefix-fac"></div>
+        <div class="highlight-box mt-2">
+          <p style="font-size:12.5px;"><strong>Format :</strong> <code>FAC/2025/001</code></p>
+          <p style="font-size:11.5px;color:var(--text-muted);">Auto-incrémenté par année.</p>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- TAB MENTIONS -->
+    <div class="tab-content" id="tab-mentions">
+      <div style="max-width:760px;" class="card"><div style="padding:24px;">
+        <div class="form-group">
+          <label class="form-label">Conditions générales</label>
+          <textarea class="form-control" id="s-conditions" rows="6"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mentions légales</label>
+          <textarea class="form-control" id="s-mentions" rows="3"></textarea>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- TAB TEMPLATE FACTURE (NOUVEAU) -->
+    <div class="tab-content" id="tab-template">
+      <div style="max-width:760px;" class="card"><div style="padding:24px;">
+        <h3 style="color:var(--primary);margin-bottom:16px;">📄 Personnalisation des factures</h3>
+        
+        <div class="form-group">
+          <label class="form-label">Colonnes affichées</label>
+          <div class="template-editor">
+            <div class="column-toggle" id="column-toggle">
+              <label><input type="checkbox" value="ref" checked> Réf</label>
+              <label><input type="checkbox" value="designation" checked> Désignation</label>
+              <label><input type="checkbox" value="unite" checked> Unité</label>
+              <label><input type="checkbox" value="qte" checked> Qté</label>
+              <label><input type="checkbox" value="prixUHT" checked> P.U. HT</label>
+              <label><input type="checkbox" value="totalHT" checked> Total HT</label>
+              <label><input type="checkbox" value="tva" checked> TVA</label>
+              <label><input type="checkbox" value="totalTTC" checked> Total TTC</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Position du logo</label>
+          <select class="form-control" id="template-logo-position">
+            <option value="left">Gauche</option>
+            <option value="center">Centré</option>
+            <option value="right">Droite</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Champs personnalisés (un par ligne, format: label:valeur)</label>
+          <textarea class="form-control" id="template-custom-fields" rows="3" placeholder="Numéro de commande:&#10;Date de livraison:"></textarea>
+        </div>
+
+        <button class="btn btn-primary" onclick="saveInvoiceTemplate()">💾 Enregistrer le template</button>
+      </div></div>
+    </div>
+
+    <!-- TAB SAUVEGARDE -->
+    <div class="tab-content" id="tab-sauvegarde">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card" style="padding:24px;">
+          <h3 style="color:var(--primary);margin-bottom:12px;">📤 Exporter</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Sauvegarde complète de vos données.</p>
+          <button class="btn btn-primary" onclick="exportAllData()" style="width:100%;">⬇️ Télécharger (JSON)</button>
+        </div>
+        <div class="card" style="padding:24px;">
+          <h3 style="color:var(--primary);margin-bottom:12px;">📥 Importer</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Restaurer une sauvegarde précédente.</p>
+          <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importAllData(this)">
+          <button class="btn btn-outline" onclick="document.getElementById('import-file').click()" style="width:100%;">📂 Restaurer</button>
+        </div>
+        <div class="card" style="padding:24px;grid-column:span 2;">
+          <h3 style="color:var(--primary);margin-bottom:12px;">☁️ Google Drive</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+            <div>
+              <p style="font-size:13px;" id="drive-status">État : <span class="badge badge-muted">Non connecté</span></p>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:4px;" id="drive-folder">Aucun dossier</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-sm btn-primary" onclick="connectDrive()">🔗 Connecter Drive</button>
+              <button class="btn btn-sm btn-success" onclick="backupToDrive()" disabled id="drive-backup-btn">💾 Sauvegarder</button>
+              <button class="btn btn-sm btn-danger" onclick="disconnectDrive()" disabled id="drive-disconnect-btn">❌ Déconnecter</button>
+            </div>
+          </div>
+          <div class="mt-2" id="drive-backups-list" style="display:none;">
+            <h4 style="font-size:13px;margin:12px 0 8px;">📂 Sauvegardes disponibles</h4>
+            <div id="drive-files-list"></div>
+            <button class="btn btn-sm btn-outline mt-1" onclick="listDriveBackups()">🔄 Rafraîchir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB DANGER -->
+    <div class="tab-content" id="tab-danger">
+      <div style="max-width:500px;">
+        <div class="card" style="padding:24px;border:2px solid var(--danger);">
+          <h3 style="color:var(--danger);margin-bottom:12px;">⚠️ Zone dangereuse</h3>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Actions irréversibles.</p>
+          <button class="btn btn-danger" onclick="resetData()">🗑️ Réinitialiser toutes les données</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS (DOCUMENT, PRODUCT, CLIENT, FOURNISSEUR, PAYMENT) -->
+<!-- Les modals sont identiques au fichier original, avec l'ajout de la modal Fournisseur -->
+
+<!-- MODAL: FOURNISSEUR (NOUVEAU) -->
+<div class="modal-overlay hidden" id="modal-fournisseur">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-fournisseur-title">Nouveau Fournisseur</h2>
+      <button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Nom *</label><input class="form-control" id="f-nom"></div>
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-control" id="f-type">
+            <option>Particulier</option><option selected>Entreprise</option><option>Administration</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">ICE</label><input class="form-control" id="f-ice"></div>
+        <div class="form-group"><label class="form-label">RC</label><input class="form-control" id="f-rc"></div>
+        <div class="form-group"><label class="form-label">IF</label><input class="form-control" id="f-if"></div>
+        <div class="form-group"><label class="form-label">CNSS</label><input class="form-control" id="f-cnss"></div>
+        <div class="form-group"><label class="form-label">Téléphone</label><input class="form-control" id="f-tel"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="f-email"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Adresse</label><input class="form-control" id="f-adresse"></div>
+      <div class="form-group"><label class="form-label">Ville</label><input class="form-control" id="f-ville"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-fournisseur')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveFournisseur()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- PDF TEMPLATE -->
+<div id="pdf-template"></div>
+
+<script type="module">
+// ═══════════════════════════════════════════════════════════════════
+// IMPORTS
+// ═══════════════════════════════════════════════════════════════════
+
+import { 
+  getAuthToken, setAuthToken, getMe, login, register,
+  getClients, createClient, updateClient, deleteClient,
+  getFournisseurs, createFournisseur, updateFournisseur, deleteFournisseur,
+  getProducts, createProduct, updateProduct, deleteProduct,
+  getDocuments, createDocument, updateDocument, deleteDocument,
+  convertToInvoice, updatePaymentStatus,
+  getSettings, updateSettings,
+  getInvoiceTemplate, updateInvoiceTemplate,
+  getDriveAuthUrl, backupToDrive, listDriveBackups, restoreFromDrive, disconnectDrive,
+  importLocalData
+} from './api.js';
+
+import { checkAndMigrate } from './migration.js';
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+
+let state = {
+  clients: [],
+  fournisseurs: [],
+  products: [],
+  documents: [],
+  settings: {},
+  invoiceTemplate: {}
+};
+
+let editingDocId = null;
+let editingDocType = null;
+let editingProductId = null;
+let editingClientId = null;
+let editingFournisseurId = null;
+let paymentTargetId = null;
+
+const MONTHS_FR = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH / INIT
+// ═══════════════════════════════════════════════════════════════════
+
+async function initApp() {
+  const token = getAuthToken();
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  try {
+    const user = await getMe();
+    document.getElementById('user-email').textContent = user.email;
+    document.getElementById('sidebar-company-name').textContent = user.company.name;
+    document.getElementById('sidebar-company-tagline').textContent = 'Gestion Commerciale';
+    
+    // Charger toutes les données
+    await loadAllData();
+    
+    // Vérifier et migrer localStorage
+    await checkAndMigrate();
+    
+    // Initialiser l'application
+    setDate();
+    renderDashboard();
+    updateBadges();
+    
+    // Démarrer la sauvegarde auto
+    initAutoBackup();
+    
+  } catch (err) {
+    console.error('Init error:', err);
+    if (err.message.includes('401')) {
+      setAuthToken(null);
+      window.location.href = 'login.html';
+    }
+  }
+}
+
+async function loadAllData() {
+  try {
+    const [clients, fournisseurs, products, documents, settings, template] = await Promise.all([
+      getClients(),
+      getFournisseurs(),
+      getProducts(),
+      getDocuments(),
+      getSettings(),
+      getInvoiceTemplate()
+    ]);
+    
+    state.clients = clients || [];
+    state.fournisseurs = fournisseurs || [];
+    state.products = products || [];
+    state.documents = documents || [];
+    state.settings = settings || {};
+    state.invoiceTemplate = template || {};
+    
+    // Mettre à jour les formulaires
+    loadSettingsForm();
+    loadInvoiceTemplateForm();
+    
+  } catch (err) {
+    console.error('Load data error:', err);
+    toast('Erreur de chargement des données', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════════
+
+const PAGE_TITLES = {
+  dashboard: 'Tableau de Bord',
+  devis: 'Devis',
+  factures: 'Factures',
+  produits: 'Produits & Services',
+  clients: 'Clients',
+  fournisseurs: 'Fournisseurs',
+  rapports: 'Rapports',
+  parametres: 'Paramètres'
+};
+
+window.navigate = function(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector(`[onclick="navigate('${page}')"]`)?.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[page] || page;
+  
+  switch(page) {
+    case 'dashboard': renderDashboard(); break;
+    case 'devis': renderDevisList(); break;
+    case 'factures': renderFacturesList(); break;
+    case 'produits': renderProductsList(); break;
+    case 'clients': renderClientsList(); break;
+    case 'fournisseurs': renderFournisseursList(); break;
+    case 'rapports': renderRapports(); break;
+    case 'parametres': loadSettingsForm(); break;
+  }
+};
+
+window.quickAction = function() {
+  navigate('factures');
+  openDocModal('facture');
+};
+
+window.logout = function() {
+  if (confirm('Déconnecter ?')) {
+    setAuthToken(null);
+    localStorage.removeItem('cie_user');
+    window.location.href = 'login.html';
+  }
+};
+
+window.switchTab = function(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if (btn) btn.classList.add('active');
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════
+
+function uid() { return '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+function fmtDate(d) { if(!d) return '—'; const dt = new Date(d); return dt.toLocaleDateString('fr-FR'); }
+function fmtMoney(n) { return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' MAD'; }
+function fmtNum(n) { return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function today() { return new Date().toISOString().slice(0,10); }
+function getClient(id) { return state.clients.find(c => c.id === id) || null; }
+function getFournisseur(id) { return state.fournisseurs.find(f => f.id === id) || null; }
+function getYear(d) { return d ? new Date(d).getFullYear() : new Date().getFullYear(); }
+function getMonth(d) { return d ? new Date(d).getMonth() : new Date().getMonth(); }
+
+function docTotals(doc) {
+  const totalHT = (doc.lignes||[]).reduce((s,l) => s + (l.totalHT||0), 0);
+  const tvaAmt = totalHT * (doc.tva||20) / 100;
+  const totalTTC = totalHT + tvaAmt;
+  return { totalHT, tvaAmt, totalTTC };
+}
+
+function statusBadge(statut) {
+  const map = {
+    en_attente: ['⏳','badge-warning','En attente'],
+    accepte: ['✅','badge-success','Accepté'],
+    refuse: ['❌','badge-danger','Refusé'],
+    expire: ['⏰','badge-muted','Expiré'],
+    payee: ['✅','badge-success','Payée'],
+    en_retard: ['🔴','badge-danger','En retard'],
+    partielle: ['🔵','badge-info','Part. payée']
+  };
+  const [icon, cls, label] = map[statut] || ['❓','badge-muted', statut];
+  return `<span class="badge ${cls}">${icon} ${label}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════
+
+window.toast = function(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type !== 'success' ? ' ' + type : '');
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️';
+  el.innerHTML = icon + ' ' + msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════════════
+
+window.closeModal = function(id) {
+  document.getElementById(id).classList.add('hidden');
+};
+
+function openModal(id) {
+  document.getElementById(id).classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NUMBER → FRENCH WORDS
+// ═══════════════════════════════════════════════════════════════════
+
+function numberToWords(n) {
+  n = Math.round(n * 100) / 100;
+  const dirhams = Math.floor(n);
+  const centimes = Math.round((n - dirhams) * 100);
+  let res = toWordsFr(dirhams) + ' Dirham' + (dirhams > 1 ? 's' : '');
+  if (centimes > 0) res += ' et ' + toWordsFr(centimes) + ' Centime' + (centimes > 1 ? 's' : '');
+  return res.charAt(0).toUpperCase() + res.slice(1);
+}
+
+function toWordsFr(n) {
+  if (n === 0) return 'zéro';
+  if (n < 0) return 'moins ' + toWordsFr(-n);
+  const units = ['','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf'];
+  const tens = ['','','vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+  function belowHundred(n) {
+    if (n < 20) return units[n];
+    const t = Math.floor(n/10), u = n%10;
+    if (t === 7) { return u === 0 ? 'soixante-dix' : u === 1 ? 'soixante et onze' : 'soixante-' + units[10+u]; }
+    if (t === 9) { return u === 0 ? 'quatre-vingt-dix' : 'quatre-vingt-' + units[10+u]; }
+    if (t === 8) { return u === 0 ? 'quatre-vingts' : 'quatre-vingt-' + units[u]; }
+    return tens[t] + (u === 1 && t !== 8 ? '-et-un' : u > 0 ? '-' + units[u] : '');
+  }
+  function belowThousand(n) {
+    if (n < 100) return belowHundred(n);
+    const h = Math.floor(n/100), r = n%100;
+    const prefix = h === 1 ? 'cent' : units[h] + ' cent';
+    if (r === 0) return h === 1 ? 'cent' : units[h] + ' cents';
+    return prefix + ' ' + belowHundred(r);
+  }
+  if (n < 1000) return belowThousand(n);
+  if (n < 1000000) {
+    const m = Math.floor(n/1000), r = n%1000;
+    const prefix = m === 1 ? 'mille' : belowThousand(m) + ' mille';
+    return r === 0 ? prefix : prefix + ' ' + belowThousand(r);
+  }
+  if (n < 1000000000) {
+    const m = Math.floor(n/1000000), r = n%1000000;
+    const prefix = m === 1 ? 'un million' : belowThousand(m) + ' millions';
+    return r === 0 ? prefix : prefix + ' ' + toWordsFr(r);
+  }
+  return String(n);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+
+function setDate() {
+  const d = new Date();
+  document.getElementById('topbar-date').textContent = d.toLocaleDateString('fr-FR', {
+    weekday:'short', day:'numeric', month:'long', year:'numeric'
+  });
+}
+
+window.renderDashboard = function() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  updateBadges();
+
+  const docs = state.documents;
+  const invoices = docs.filter(d => d.type === 'facture');
+  const quotes = docs.filter(d => d.type === 'devis');
+
+  // KPI Factures du mois
+  const thisMonth = invoices.filter(f => {
+    const d = new Date(f.date);
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+  const thisMonthTotal = thisMonth.reduce((s,f) => s + docTotals(f).totalTTC, 0);
+  document.getElementById('kpi-mois').textContent = fmtMoney(thisMonthTotal);
+  document.getElementById('kpi-mois-sub').textContent = thisMonth.length + ' facture(s)';
+
+  // KPI Devis en attente
+  const pendingQuotes = quotes.filter(q => q.statut === 'en_attente');
+  document.getElementById('kpi-devis').textContent = pendingQuotes.length;
+
+  // KPI Factures impayées
+  const unpaid = invoices.filter(f => ['en_attente','en_retard','partielle'].includes(f.statut));
+  const unpaidTotal = unpaid.reduce((s,f) => s + docTotals(f).totalTTC, 0);
+  document.getElementById('kpi-impaye').textContent = fmtMoney(unpaidTotal);
+  document.getElementById('kpi-impaye-sub').textContent = unpaid.length + ' facture(s)';
+
+  // KPI CA Annuel
+  const yearInvoices = invoices.filter(f => getYear(f.date) === year);
+  const caYear = yearInvoices.reduce((s,f) => s + docTotals(f).totalTTC, 0);
+  document.getElementById('kpi-ca').textContent = fmtMoney(caYear);
+  document.getElementById('kpi-ca-sub').textContent = 'Année ' + year;
+  document.getElementById('chart-year').textContent = year;
+
+  // Bar chart
+  const monthlyCA = Array(12).fill(0);
+  invoices.forEach(f => {
+    if (getYear(f.date) === year) {
+      monthlyCA[getMonth(f.date)] += docTotals(f).totalTTC;
+    }
+  });
+  const maxCA = Math.max(...monthlyCA, 1);
+  const chart = document.getElementById('bar-chart');
+  chart.innerHTML = monthlyCA.map((v, i) => {
+    const h = Math.max((v/maxCA)*130, 4);
+    return `<div class="bar-wrap">
+      <div class="bar-val">${v > 0 ? (v/1000).toFixed(0)+'k' : ''}</div>
+      <div class="bar" style="height:${h}px;" title="${MONTHS_FULL[i]}: ${fmtMoney(v)}"></div>
+      <div class="bar-label">${MONTHS_FR[i]}</div>
+    </div>`;
+  }).join('');
+
+  // Payment stats
+  const totalInvoices = invoices.length;
+  const paid = invoices.filter(f => f.statut === 'payee').length;
+  const pct = totalInvoices > 0 ? Math.round(paid/totalInvoices*100) : 0;
+  document.getElementById('payment-stats').innerHTML = `
+    <div class="stat-row"><span>Total factures</span><span class="font-bold">${totalInvoices}</span></div>
+    <div class="stat-row"><span>Payées</span><span class="font-bold text-success">${paid}</span></div>
+    <div class="stat-row"><span>En attente</span><span class="font-bold text-warning">${invoices.filter(f=>f.statut==='en_attente').length}</span></div>
+    <div class="stat-row"><span>En retard</span><span class="font-bold text-danger">${invoices.filter(f=>f.statut==='en_retard').length}</span></div>
+    <div class="stat-row"><span>Taux recouvrement</span><span class="font-bold text-primary">${pct}%</span></div>
+    <div style="margin-top:12px;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:var(--success);border-radius:4px;transition:width 0.5s;"></div>
+    </div>`;
+
+  // Recent activity
+  const all = [...docs].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,8);
+  const tbody = document.getElementById('recent-activity');
+  tbody.innerHTML = all.map(doc => {
+    const client = getClient(doc.clientId);
+    const {totalTTC} = docTotals(doc);
+    const typeLabel = doc.type === 'facture' ? 'Facture' : 'Devis';
+    const badgeClass = doc.type === 'facture' ? 'badge-info' : 'badge-purple';
+    return `<tr>
+      <td class="font-bold text-primary" style="font-size:11.5px;">${doc.numero}</td>
+      <td><span class="badge ${badgeClass}">${typeLabel}</span></td>
+      <td>${client ? client.nom : '—'}</td>
+      <td>${fmtDate(doc.date)}</td>
+      <td class="font-bold">${fmtMoney(totalTTC)}</td>
+      <td>${statusBadge(doc.statut)}</td>
+      <td><button class="btn btn-sm btn-ghost" onclick="viewDoc('${doc.id}')">👁</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="text-center text-muted" style="padding:28px;">Aucune activité récente</td></tr>';
+};
+
+function updateBadges() {
+  const docs = state.documents;
+  const pendingQuotes = docs.filter(d => d.type === 'devis' && d.statut === 'en_attente').length;
+  const el = document.getElementById('badge-devis');
+  if (pendingQuotes > 0) { el.textContent = pendingQuotes; el.style.display = ''; }
+  else el.style.display = 'none';
+
+  const overdue = docs.filter(d => d.type === 'facture' && d.statut === 'en_retard').length;
+  const fb = document.getElementById('badge-factures');
+  if (overdue > 0) { fb.textContent = overdue; fb.style.display = ''; }
+  else fb.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DOCUMENT MODAL
+// ═══════════════════════════════════════════════════════════════════
+
+window.openDocModal = function(type, id = null) {
+  editingDocType = type;
+  editingDocId = id;
+  const isDevis = type === 'devis';
+  document.getElementById('modal-doc-title').textContent = id ? (isDevis ? 'Modifier Devis' : 'Modifier Facture') : (isDevis ? 'Nouveau Devis' : 'Nouvelle Facture');
+
+  const sel = document.getElementById('doc-client');
+  sel.innerHTML = '<option value="">— Sélectionner —</option>' + 
+    state.clients.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+
+  const statusRow = document.getElementById('doc-statut-row');
+  const docStatut = document.getElementById('doc-statut');
+  const btnConvert = document.getElementById('btn-convert');
+
+  if (id) {
+    const doc = state.documents.find(d => d.id === id);
+    if (!doc) return;
+    document.getElementById('doc-numero').value = doc.numero;
+    document.getElementById('doc-date').value = doc.date?.slice(0,10) || today();
+    document.getElementById('doc-client').value = doc.clientId;
+    document.getElementById('doc-objet').value = doc.objet || '';
+    document.getElementById('doc-tva').value = doc.tva || 20;
+    document.getElementById('doc-notes').value = doc.notes || '';
+
+    statusRow.style.display = '';
+    if (isDevis) {
+      docStatut.innerHTML = ['en_attente','accepte','refuse','expire'].map(s => 
+        `<option value="${s}">${s === 'en_attente' ? 'En attente' : s === 'accepte' ? 'Accepté' : s === 'refuse' ? 'Refusé' : 'Expiré'}</option>`
+      ).join('');
+      btnConvert.style.display = '';
+    } else {
+      docStatut.innerHTML = ['en_attente','payee','en_retard','partielle'].map(s => 
+        `<option value="${s}">${s === 'en_attente' ? 'En attente' : s === 'payee' ? 'Payée' : s === 'en_retard' ? 'En retard' : 'Part. payée'}</option>`
+      ).join('');
+      btnConvert.style.display = 'none';
+    }
+    docStatut.value = doc.statut;
+
+    document.getElementById('line-items-body').innerHTML = '';
+    (doc.lignes||[]).forEach(l => addLineItem(l));
+  } else {
+    document.getElementById('doc-numero').value = generateNumber(type);
+    document.getElementById('doc-date').value = today();
+    document.getElementById('doc-client').value = '';
+    document.getElementById('doc-objet').value = '';
+    document.getElementById('doc-tva').value = state.settings.tvaDefault || 20;
+    document.getElementById('doc-notes').value = state.settings.conditions || '';
+    statusRow.style.display = 'none';
+    btnConvert.style.display = 'none';
+    document.getElementById('line-items-body').innerHTML = '';
+    addLineItem();
+  }
+
+  calcTotals();
+  openModal('modal-doc');
+};
+
+window.viewDoc = function(id) {
+  const doc = state.documents.find(d => d.id === id);
+  if (!doc) return;
+  navigate(doc.type === 'facture' ? 'factures' : 'devis');
+  openDocModal(doc.type, id);
+};
+
+function generateNumber(type) {
+  const year = new Date().getFullYear();
+  const prefix = type === 'devis' ? (state.settings.prefixDevis || 'DEV') : (state.settings.prefixFac || 'FAC');
+  const existing = state.documents.filter(d => d.type === type && getYear(d.date) === year);
+  const n = existing.length + 1;
+  return `${prefix}/${year}/${String(n).padStart(3,'0')}`;
+}
+
+function addLineItem(data = null) {
+  const tbody = document.getElementById('line-items-body');
+  const id = uid();
+  const tr = document.createElement('tr');
+  tr.id = 'line-' + id;
+  tr.innerHTML = `
+    <td><input class="form-control-sm" value="${data?.ref||''}" placeholder="Réf" style="width:72px;" onchange="checkProductLookup(this)"></td>
+    <td>
+      <input list="prod-list-${id}" class="form-control-sm" value="${data?.designation||''}" placeholder="Désignation..." style="min-width:200px;" oninput="handleDesignationInput(this, '${id}')">
+      <datalist id="prod-list-${id}">${state.products.map(p=>`<option value="${p.designation}" data-ref="${p.code}" data-prix="${p.prixHT}" data-unite="${p.unite}">`).join('')}</datalist>
+    </td>
+    <td>
+      <select class="form-control-sm" style="width:72px;" onchange="calcTotals()">
+        ${['ML','U','KG','M²','H','Forfait'].map(u=>`<option${data?.unite===u?' selected':''}>${u}</option>`).join('')}
+      </select>
+    </td>
+    <td><input type="number" class="form-control-sm" value="${data?.qte||1}" min="0" step="0.01" style="width:66px;" oninput="calcLineTotals(this)"></td>
+    <td><input type="number" class="form-control-sm" value="${data?.prixUHT||0}" min="0" step="0.01" style="width:100px;" oninput="calcLineTotals(this)"></td>
+    <td><input type="number" class="form-control-sm line-total" value="${data?.totalHT||0}" readonly style="width:100px;background:#F8FAFC;font-weight:600;"></td>
+    <td><button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="document.getElementById('line-${id}').remove();calcTotals()">✕</button></td>`;
+  tbody.appendChild(tr);
+  if (!data) calcTotals();
+}
+
+window.calcLineTotals = function(inp) {
+  const tr = inp.closest('tr');
+  const inputs = tr.querySelectorAll('input[type="number"]');
+  const qte = parseFloat(inputs[0].value)||0;
+  const prix = parseFloat(inputs[1].value)||0;
+  inputs[2].value = (qte * prix).toFixed(2);
+  calcTotals();
+};
+
+window.handleDesignationInput = function(inp, lineId) {
+  const val = inp.value;
+  const prod = state.products.find(p => p.designation === val);
+  if (prod) {
+    const tr = inp.closest('tr');
+    const inputs = tr.querySelectorAll('input');
+    inputs[0].value = prod.code;
+    const selects = tr.querySelectorAll('select');
+    selects[0].value = prod.unite;
+    const numInputs = tr.querySelectorAll('input[type="number"]');
+    numInputs[1].value = prod.prixHT;
+    calcLineTotals(numInputs[1]);
+  }
+  calcTotals();
+};
+
+window.checkProductLookup = function(inp) {
+  const ref = inp.value.trim().toUpperCase();
+  const prod = state.products.find(p => p.code.toUpperCase() === ref);
+  if (prod) {
+    const tr = inp.closest('tr');
+    const desInput = tr.querySelector('input[list]');
+    desInput.value = prod.designation;
+    const selects = tr.querySelectorAll('select');
+    selects[0].value = prod.unite;
+    const numInputs = tr.querySelectorAll('input[type="number"]');
+    numInputs[1].value = prod.prixHT;
+    calcLineTotals(numInputs[1]);
+  }
+};
+
+function calcTotals() {
+  let totalHT = 0;
+  document.querySelectorAll('.line-total').forEach(el => { totalHT += parseFloat(el.value)||0; });
+  const tva = parseFloat(document.getElementById('doc-tva').value)||20;
+  const tvaAmt = totalHT * tva / 100;
+  const ttc = totalHT + tvaAmt;
+  document.getElementById('total-ht-display').textContent = fmtNum(totalHT) + ' MAD';
+  document.getElementById('total-tva-display').textContent = fmtNum(tvaAmt) + ' MAD';
+  document.getElementById('total-ttc-display').textContent = fmtNum(ttc) + ' MAD';
+  document.getElementById('tva-pct-display').textContent = tva;
+  document.getElementById('montant-lettres-display').textContent = numberToWords(ttc);
+}
+
+function collectLines() {
+  const rows = document.querySelectorAll('#line-items-body tr');
+  return Array.from(rows).map(tr => {
+    const texts = tr.querySelectorAll('input:not([type="number"])');
+    const nums = tr.querySelectorAll('input[type="number"]');
+    const sel = tr.querySelector('select');
+    return {
+      ref: texts[0].value,
+      designation: texts[1].value,
+      unite: sel ? sel.value : 'U',
+      qte: parseFloat(nums[0].value)||0,
+      prixUHT: parseFloat(nums[1].value)||0,
+      totalHT: parseFloat(nums[2].value)||0,
+    };
+  }).filter(l => l.designation.trim());
+}
+
+window.saveDocument = async function() {
+  const clientId = document.getElementById('doc-client').value;
+  if (!clientId) { toast('Veuillez sélectionner un client', 'error'); return; }
+  const lignes = collectLines();
+  if (!lignes.length) { toast('Ajoutez au moins une ligne', 'error'); return; }
+  
+  const isDevis = editingDocType === 'devis';
+  const statusSel = document.getElementById('doc-statut');
+  const doc = {
+    type: editingDocType,
+    numero: document.getElementById('doc-numero').value,
+    date: document.getElementById('doc-date').value,
+    clientId,
+    objet: document.getElementById('doc-objet').value,
+    tva: parseFloat(document.getElementById('doc-tva').value)||20,
+    statut: editingDocId ? statusSel.value : (isDevis ? 'en_attente' : 'en_attente'),
+    notes: document.getElementById('doc-notes').value,
+    lignes
+  };
+
+  try {
+    if (editingDocId) {
+      const updated = await updateDocument(editingDocId, doc);
+      const idx = state.documents.findIndex(d => d.id === editingDocId);
+      if (idx >= 0) state.documents[idx] = updated;
+    } else {
+      const created = await createDocument(doc);
+      state.documents.push(created);
+    }
+    closeModal('modal-doc');
+    toast((isDevis ? 'Devis' : 'Facture') + ' enregistré(e) avec succès !');
+    if (isDevis) renderDevisList(); else renderFacturesList();
+    updateBadges();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.convertToInvoice = async function() {
+  if (!editingDocId) return;
+  try {
+    const doc = await convertToInvoice(editingDocId);
+    const idx = state.documents.findIndex(d => d.id === editingDocId);
+    if (idx >= 0) state.documents[idx] = doc;
+    closeModal('modal-doc');
+    toast('Devis converti en facture ' + doc.numero + ' !');
+    navigate('factures');
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// DEVIS LIST
+// ═══════════════════════════════════════════════════════════════════
+
+window.renderDevisList = function() {
+  const search = (document.getElementById('devis-search')?.value||'').toLowerCase();
+  const statusF = document.getElementById('devis-status-filter')?.value||'';
+  let list = state.documents.filter(d => {
+    if (d.type !== 'devis') return false;
+    const client = getClient(d.clientId);
+    const match = d.numero.toLowerCase().includes(search) || (client?.nom||'').toLowerCase().includes(search) || (d.objet||'').toLowerCase().includes(search);
+    return match && (!statusF || d.statut === statusF);
+  });
+  const tbody = document.getElementById('devis-list');
+  tbody.innerHTML = list.map(d => {
+    const client = getClient(d.clientId);
+    const {totalHT, totalTTC} = docTotals(d);
+    return `<tr>
+      <td class="font-bold text-primary" style="font-size:11.5px;">${d.numero}</td>
+      <td>${client?.nom||'—'}</td>
+      <td>${fmtDate(d.date)}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.objet||'—'}</td>
+      <td>${fmtMoney(totalHT)}</td>
+      <td class="font-bold">${fmtMoney(totalTTC)}</td>
+      <td>${statusBadge(d.statut)}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-ghost" onclick="openDocModal('devis','${d.id}')" title="Modifier">✏️</button>
+          <button class="btn btn-sm btn-ghost" onclick="printDoc('${d.id}')" title="PDF">🖨️</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteDoc('${d.id}')" title="Supprimer" style="color:var(--danger);">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-center text-muted" style="padding:28px;"><div class="empty-state"><div class="empty-icon">📄</div><h3>Aucun devis</h3><p>Créez votre premier devis</p></div></td></tr>';
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// FACTURES LIST
+// ═══════════════════════════════════════════════════════════════════
+
+window.renderFacturesList = function() {
+  const search = (document.getElementById('fac-search')?.value||'').toLowerCase();
+  const statusF = document.getElementById('fac-status-filter')?.value||'';
+  let list = state.documents.filter(d => {
+    if (d.type !== 'facture') return false;
+    const client = getClient(d.clientId);
+    const match = d.numero.toLowerCase().includes(search) || (client?.nom||'').toLowerCase().includes(search) || (d.objet||'').toLowerCase().includes(search);
+    return match && (!statusF || d.statut === statusF);
+  });
+  const tbody = document.getElementById('factures-list');
+  tbody.innerHTML = list.map(d => {
+    const client = getClient(d.clientId);
+    const {totalHT, tvaAmt, totalTTC} = docTotals(d);
+    return `<tr>
+      <td class="font-bold text-primary" style="font-size:11.5px;">${d.numero}</td>
+      <td>${client?.nom||'—'}</td>
+      <td>${fmtDate(d.date)}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.objet||'—'}</td>
+      <td>${fmtMoney(totalHT)}</td>
+      <td>${fmtMoney(tvaAmt)}</td>
+      <td class="font-bold">${fmtMoney(totalTTC)}</td>
+      <td>${statusBadge(d.statut)}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-ghost" onclick="openDocModal('facture','${d.id}')" title="Modifier">✏️</button>
+          <button class="btn btn-sm btn-ghost" onclick="printDoc('${d.id}')" title="PDF">🖨️</button>
+          <button class="btn btn-sm btn-success" onclick="openPaymentModal('${d.id}')" title="Paiement" style="font-size:10px;padding:4px 8px;">💰</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteDoc('${d.id}')" title="Supprimer" style="color:var(--danger);">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="text-center text-muted" style="padding:28px;"><div class="empty-state"><div class="empty-icon">🧾</div><h3>Aucune facture</h3><p>Créez votre première facture</p></div></td></tr>';
+};
+
+window.deleteDoc = async function(id) {
+  if (!confirm('Supprimer ce document ?')) return;
+  try {
+    await deleteDocument(id);
+    state.documents = state.documents.filter(d => d.id !== id);
+    toast('Document supprimé', 'warning');
+    renderDevisList();
+    renderFacturesList();
+    updateBadges();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// PAYMENT MODAL
+// ═══════════════════════════════════════════════════════════════════
+
+window.openPaymentModal = function(id) {
+  paymentTargetId = id;
+  const doc = state.documents.find(d => d.id === id);
+  if (!doc) return;
+  const {totalTTC} = docTotals(doc);
+  document.getElementById('pay-amount').value = totalTTC.toFixed(2);
+  document.getElementById('pay-date').value = today();
+  openModal('modal-payment');
+};
+
+window.confirmPayment = async function() {
+  const doc = state.documents.find(d => d.id === paymentTargetId);
+  if (!doc) return;
+  const amt = parseFloat(document.getElementById('pay-amount').value)||0;
+  const {totalTTC} = docTotals(doc);
+  
+  // Simuler un paiement partiel ou total
+  const newStatut = amt >= totalTTC ? 'payee' : amt > 0 ? 'partielle' : doc.statut;
+  
+  try {
+    const updated = await updatePaymentStatus(paymentTargetId, newStatut);
+    const idx = state.documents.findIndex(d => d.id === paymentTargetId);
+    if (idx >= 0) state.documents[idx] = updated;
+    closeModal('modal-payment');
+    toast('Paiement enregistré !');
+    renderFacturesList();
+    updateBadges();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// CLIENTS
+// ═══════════════════════════════════════════════════════════════════
+
+window.renderClientsList = function() {
+  const search = (document.getElementById('client-search')?.value||'').toLowerCase();
+  const typeF = document.getElementById('client-type-filter')?.value||'';
+  let list = state.clients.filter(c => {
+    const match = c.nom.toLowerCase().includes(search) || (c.ville||'').toLowerCase().includes(search);
+    return match && (!typeF || c.type === typeF);
+  });
+  const TYPE_BADGE = {Particulier:'badge-muted',Entreprise:'badge-info',Administration:'badge-warning'};
+  const tbody = document.getElementById('clients-list');
+  tbody.innerHTML = list.map(c => {
+    const facs = state.documents.filter(d => d.clientId === c.id && d.type === 'facture').length;
+    return `<tr>
+      <td class="font-bold">${c.nom}</td>
+      <td><span class="badge ${TYPE_BADGE[c.type]||'badge-muted'}">${c.type}</span></td>
+      <td style="font-size:11.5px;color:var(--text-muted);">${c.ice||'—'}</td>
+      <td>${c.ville||'—'}</td>
+      <td>${c.tel||'—'}</td>
+      <td>${c.email||'—'}</td>
+      <td><span class="badge badge-info">${facs}</span></td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-ghost" onclick="openClientModal('${c.id}')" title="Modifier">✏️</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteClient('${c.id}')" title="Supprimer" style="color:var(--danger);">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-center text-muted" style="padding:28px;"><div class="empty-state"><div class="empty-icon">👥</div><h3>Aucun client</h3></div></td></tr>';
+};
+
+window.openClientModal = function(id = null) {
+  editingClientId = id;
+  document.getElementById('modal-client-title').textContent = id ? 'Modifier Client' : 'Nouveau Client';
+  if (id) {
+    const c = state.clients.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('c-nom').value = c.nom;
+    document.getElementById('c-type').value = c.type;
+    document.getElementById('c-ice').value = c.ice||'';
+    document.getElementById('c-rc').value = c.rc||'';
+    document.getElementById('c-if').value = c.ifNum||'';
+    document.getElementById('c-cnss').value = c.cnss||'';
+    document.getElementById('c-tel').value = c.tel||'';
+    document.getElementById('c-email').value = c.email||'';
+    document.getElementById('c-adresse').value = c.adresse||'';
+    document.getElementById('c-ville').value = c.ville||'';
+  } else {
+    ['c-nom','c-ice','c-rc','c-if','c-cnss','c-tel','c-email','c-adresse','c-ville'].forEach(i => document.getElementById(i).value = '');
+  }
+  openModal('modal-client');
+};
+
+window.saveClient = async function() {
+  const nom = document.getElementById('c-nom').value.trim();
+  if (!nom) { toast('Le nom est requis', 'error'); return; }
+  const data = {
+    nom,
+    type: document.getElementById('c-type').value,
+    ice: document.getElementById('c-ice').value,
+    rc: document.getElementById('c-rc').value,
+    ifNum: document.getElementById('c-if').value,
+    cnss: document.getElementById('c-cnss').value,
+    tel: document.getElementById('c-tel').value,
+    email: document.getElementById('c-email').value,
+    adresse: document.getElementById('c-adresse').value,
+    ville: document.getElementById('c-ville').value,
+  };
+  try {
+    if (editingClientId) {
+      const updated = await updateClient(editingClientId, data);
+      const idx = state.clients.findIndex(x => x.id === editingClientId);
+      if (idx >= 0) state.clients[idx] = updated;
+    } else {
+      const created = await createClient(data);
+      state.clients.push(created);
+    }
+    closeModal('modal-client');
+    toast('Client enregistré !');
+    renderClientsList();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.deleteClient = async function(id) {
+  if (!confirm('Supprimer ce client ?')) return;
+  try {
+    await deleteClient(id);
+    state.clients = state.clients.filter(c => c.id !== id);
+    toast('Client supprimé', 'warning');
+    renderClientsList();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// FOURNISSEURS
+// ═══════════════════════════════════════════════════════════════════
+
+window.renderFournisseursList = function() {
+  const search = (document.getElementById('fournisseur-search')?.value||'').toLowerCase();
+  let list = state.fournisseurs.filter(f => {
+    return f.nom.toLowerCase().includes(search) || (f.ville||'').toLowerCase().includes(search);
+  });
+  const TYPE_BADGE = {Particulier:'badge-muted',Entreprise:'badge-info',Administration:'badge-warning'};
+  const tbody = document.getElementById('fournisseurs-list');
+  tbody.innerHTML = list.map(f => {
+    const products = state.products.filter(p => p.fournisseurId === f.id);
+    return `<tr>
+      <td class="font-bold">${f.nom}</td>
+      <td><span class="badge ${TYPE_BADGE[f.type]||'badge-muted'}">${f.type}</span></td>
+      <td style="font-size:11.5px;color:var(--text-muted);">${f.ice||'—'}</td>
+      <td>${f.ville||'—'}</td>
+      <td>${f.tel||'—'}</td>
+      <td>${f.email||'—'}</td>
+      <td><span class="badge badge-purple">${products.length}</span></td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-ghost" onclick="openFournisseurModal('${f.id}')" title="Modifier">✏️</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteFournisseur('${f.id}')" title="Supprimer" style="color:var(--danger);">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-center text-muted" style="padding:28px;"><div class="empty-state"><div class="empty-icon">🏭</div><h3>Aucun fournisseur</h3></div></td></tr>';
+};
+
+window.openFournisseurModal = function(id = null) {
+  editingFournisseurId = id;
+  document.getElementById('modal-fournisseur-title').textContent = id ? 'Modifier Fournisseur' : 'Nouveau Fournisseur';
+  if (id) {
+    const f = state.fournisseurs.find(x => x.id === id);
+    if (!f) return;
+    document.getElementById('f-nom').value = f.nom;
+    document.getElementById('f-type').value = f.type;
+    document.getElementById('f-ice').value = f.ice||'';
+    document.getElementById('f-rc').value = f.rc||'';
+    document.getElementById('f-if').value = f.ifNum||'';
+    document.getElementById('f-cnss').value = f.cnss||'';
+    document.getElementById('f-tel').value = f.tel||'';
+    document.getElementById('f-email').value = f.email||'';
+    document.getElementById('f-adresse').value = f.adresse||'';
+    document.getElementById('f-ville').value = f.ville||'';
+  } else {
+    ['f-nom','f-ice','f-rc','f-if','f-cnss','f-tel','f-email','f-adresse','f-ville'].forEach(i => document.getElementById(i).value = '');
+  }
+  openModal('modal-fournisseur');
+};
+
+window.saveFournisseur = async function() {
+  const nom = document.getElementById('f-nom').value.trim();
+  if (!nom) { toast('Le nom est requis', 'error'); return; }
+  const data = {
+    nom,
+    type: document.getElementById('f-type').value,
+    ice: document.getElementById('f-ice').value,
+    rc: document.getElementById('f-rc').value,
+    ifNum: document.getElementById('f-if').value,
+    cnss: document.getElementById('f-cnss').value,
+    tel: document.getElementById('f-tel').value,
+    email: document.getElementById('f-email').value,
+    adresse: document.getElementById('f-adresse').value,
+    ville: document.getElementById('f-ville').value,
+  };
+  try {
+    if (editingFournisseurId) {
+      const updated = await updateFournisseur(editingFournisseurId, data);
+      const idx = state.fournisseurs.findIndex(x => x.id === editingFournisseurId);
+      if (idx >= 0) state.fournisseurs[idx] = updated;
+    } else {
+      const created = await createFournisseur(data);
+      state.fournisseurs.push(created);
+    }
+    closeModal('modal-fournisseur');
+    toast('Fournisseur enregistré !');
+    renderFournisseursList();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.deleteFournisseur = async function(id) {
+  if (!confirm('Supprimer ce fournisseur ?')) return;
+  try {
+    await deleteFournisseur(id);
+    state.fournisseurs = state.fournisseurs.filter(f => f.id !== id);
+    toast('Fournisseur supprimé', 'warning');
+    renderFournisseursList();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// PRODUITS
+// ═══════════════════════════════════════════════════════════════════
+
+window.renderProductsList = function() {
+  const search = (document.getElementById('prod-search')?.value||'').toLowerCase();
+  const catF = document.getElementById('prod-cat-filter')?.value||'';
+  let list = state.products.filter(p => {
+    const match = p.designation.toLowerCase().includes(search) || p.code.toLowerCase().includes(search);
+    return match && (!catF || p.categorie === catF);
+  });
+  const CAT_COLORS = {
+    'Câblage':'badge-info','Appareillage':'badge-warning','Éclairage':'badge-purple',
+    'Plomberie':'badge-success','Climatisation':'badge-info','Main d\'œuvre':'badge-muted','Autre':'badge-muted'
+  };
+  const tbody = document.getElementById('produits-list');
+  tbody.innerHTML = list.map(p => {
+    const fournisseur = getFournisseur(p.fournisseurId);
+    return `<tr>
+      <td class="font-bold" style="font-size:11.5px;color:var(--text-muted);">${p.code}</td>
+      <td>${p.designation}</td>
+      <td><span class="badge ${CAT_COLORS[p.categorie]||'badge-muted'}">${p.categorie}</span></td>
+      <td><span class="badge badge-muted">${p.unite}</span></td>
+      <td class="font-bold">${fmtNum(p.prixHT)} MAD</td>
+      <td>${p.tva}%</td>
+      <td>${fournisseur ? fournisseur.nom : '—'}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-ghost" onclick="openProductModal('${p.id}')" title="Modifier">✏️</button>
+          <button class="btn btn-sm btn-ghost" onclick="deleteProduct('${p.id}')" title="Supprimer" style="color:var(--danger);">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="text-center text-muted" style="padding:28px;">Aucun produit</td></tr>';
+};
+
+window.openProductModal = function(id = null) {
+  editingProductId = id;
+  document.getElementById('modal-product-title').textContent = id ? 'Modifier Produit' : 'Nouveau Produit';
+  
+  // Remplir la liste des fournisseurs
+  const fournSelect = document.getElementById('p-fournisseur');
+  if (fournSelect) {
+    fournSelect.innerHTML = '<option value="">— Aucun —</option>' + 
+      state.fournisseurs.map(f => `<option value="${f.id}">${f.nom}</option>`).join('');
+  }
+  
+  if (id) {
+    const p = state.products.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('p-code').value = p.code;
+    document.getElementById('p-designation').value = p.designation;
+    document.getElementById('p-categorie').value = p.categorie;
+    document.getElementById('p-unite').value = p.unite;
+    document.getElementById('p-prix').value = p.prixHT;
+    document.getElementById('p-tva').value = p.tva;
+    if (fournSelect) fournSelect.value = p.fournisseurId || '';
+  } else {
+    ['p-code','p-designation','p-prix'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('p-tva').value = 20;
+    if (fournSelect) fournSelect.value = '';
+  }
+  openModal('modal-product');
+};
+
+window.saveProduct = async function() {
+  const designation = document.getElementById('p-designation').value.trim();
+  if (!designation) { toast('La désignation est requise', 'error'); return; }
+  const fournSelect = document.getElementById('p-fournisseur');
+  const data = {
+    code: document.getElementById('p-code').value.trim() || 'P' + String(state.products.length+1).padStart(3,'0'),
+    designation,
+    categorie: document.getElementById('p-categorie').value,
+    unite: document.getElementById('p-unite').value,
+    prixHT: parseFloat(document.getElementById('p-prix').value)||0,
+    tva: parseFloat(document.getElementById('p-tva').value)||20,
+    fournisseurId: fournSelect ? fournSelect.value || null : null
+  };
+  try {
+    if (editingProductId) {
+      const updated = await updateProduct(editingProductId, data);
+      const idx = state.products.findIndex(x => x.id === editingProductId);
+      if (idx >= 0) state.products[idx] = updated;
+    } else {
+      const created = await createProduct(data);
+      state.products.push(created);
+    }
+    closeModal('modal-product');
+    toast('Produit enregistré !');
+    renderProductsList();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.deleteProduct = async function(id) {
+  if (!confirm('Supprimer ce produit ?')) return;
+  try {
+    await deleteProduct(id);
+    state.products = state.products.filter(p => p.id !== id);
+    toast('Produit supprimé', 'warning');
+    renderProductsList();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// RAPPORTS
+// ═══════════════════════════════════════════════════════════════════
+
+window.renderRapports = function() {
+  const periode = document.getElementById('rapport-periode')?.value||'mois';
+  const now = new Date();
+  const inPeriod = (d) => {
+    const date = new Date(d);
+    if (periode === 'semaine') { const s = new Date(now); s.setDate(now.getDate()-7); return date >= s; }
+    if (periode === 'mois') return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    if (periode === 'trimestre') { const q = Math.floor(now.getMonth()/3); return Math.floor(date.getMonth()/3) === q && date.getFullYear() === now.getFullYear(); }
+    if (periode === 'annee') return date.getFullYear() === now.getFullYear();
+    return true;
+  };
+  const facs = state.documents.filter(d => d.type === 'facture' && inPeriod(d.date));
+  const ca = facs.reduce((s,f) => s + docTotals(f).totalTTC, 0);
+  const payees = facs.filter(f => f.statut === 'payee').reduce((s,f) => s + docTotals(f).totalTTC, 0);
+  const impayees = ca - payees;
+
+  document.getElementById('rapport-kpis').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">CA période</div><div class="kpi-value" style="font-size:20px;">${fmtMoney(ca)}</div><div class="kpi-sub">${facs.length} facture(s)</div><div class="kpi-icon">📊</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Encaissé</div><div class="kpi-value" style="font-size:20px;">${fmtMoney(payees)}</div><div class="kpi-sub">Paiements reçus</div><div class="kpi-icon">✅</div></div>
+    <div class="kpi-card red"><div class="kpi-label">À encaisser</div><div class="kpi-value" style="font-size:20px;">${fmtMoney(impayees)}</div><div class="kpi-sub">Solde dû</div><div class="kpi-icon">⏳</div></div>`;
+
+  // Top products
+  const prodCA = {};
+  facs.forEach(f => (f.lignes||[]).forEach(l => { prodCA[l.designation] = (prodCA[l.designation]||0) + l.totalHT; }));
+  const topProd = Object.entries(prodCA).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  document.getElementById('top-produits').innerHTML = topProd.map(([nom,val],i) => `
+    <div class="stat-row"><span style="font-size:12px;">${i+1}. ${nom.length>35?nom.slice(0,35)+'…':nom}</span><span class="font-bold" style="font-size:12px;">${fmtMoney(val)}</span></div>
+  `).join('') || '<p class="text-muted" style="font-size:13px;">Aucune donnée</p>';
+
+  // Top clients
+  const clientCA = {};
+  facs.forEach(f => { const c = getClient(f.clientId); if(c) clientCA[c.nom] = (clientCA[c.nom]||0) + docTotals(f).totalTTC; });
+  const topCli = Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  document.getElementById('top-clients').innerHTML = topCli.map(([nom,val],i) => `
+    <div class="stat-row"><span style="font-size:12px;">${i+1}. ${nom}</span><span class="font-bold" style="font-size:12px;">${fmtMoney(val)}</span></div>
+  `).join('') || '<p class="text-muted" style="font-size:13px;">Aucune donnée</p>';
+
+  // Table
+  const tbody = document.getElementById('rapport-table');
+  tbody.innerHTML = facs.map(f => {
+    const {totalTTC} = docTotals(f);
+    const client = getClient(f.clientId);
+    return `<tr><td class="font-bold" style="font-size:11.5px;">${f.numero}</td><td>${client?.nom||'—'}</td><td>${fmtDate(f.date)}</td><td class="font-bold">${fmtMoney(totalTTC)}</td><td>${statusBadge(f.statut)}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" class="text-center text-muted" style="padding:24px;">Aucune facture sur cette période</td></tr>';
+};
+
+window.exportCSV = function() {
+  const rows = [['N° Facture','Client','Date','Total HT','TVA','Total TTC','Statut']];
+  state.documents.filter(d => d.type === 'facture').forEach(f => {
+    const {totalHT, tvaAmt, totalTTC} = docTotals(f);
+    const client = getClient(f.clientId);
+    rows.push([f.numero, client?.nom||'', fmtDate(f.date), totalHT.toFixed(2), tvaAmt.toFixed(2), totalTTC.toFixed(2), f.statut]);
+  });
+  const csv = rows.map(r => r.map(c => `"${c}"`).join(';')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `factures_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  toast('Export CSV téléchargé !');
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// PARAMÈTRES
+// ═══════════════════════════════════════════════════════════════════
+
+function loadSettingsForm() {
+  const s = state.settings;
+  const fields = {
+    's-nom':s.nom||'', 's-tagline':s.tagline||'', 's-adresse':s.adresse||'',
+    's-tel':s.tel||'', 's-email':s.email||'', 's-capital':s.capital||'',
+    's-ice':s.ice||'', 's-rc':s.rc||'', 's-patente':s.patente||'',
+    's-if':s.ifNum||'', 's-cnss':s.cnss||'', 's-rib':s.rib||'',
+    's-logo':s.logo||'', 's-prefix-devis':s.prefixDevis||'DEV',
+    's-prefix-fac':s.prefixFac||'FAC', 's-conditions':s.conditions||'',
+    's-mentions':s.mentions||''
+  };
+  Object.entries(fields).forEach(([id,val]) => { const el = document.getElementById(id); if(el) el.value = val||''; });
+  document.getElementById('s-tva').value = s.tvaDefault || 20;
+}
+
+window.saveSettings = async function() {
+  const settings = {
+    nom: document.getElementById('s-nom').value,
+    tagline: document.getElementById('s-tagline').value,
+    adresse: document.getElementById('s-adresse').value,
+    tel: document.getElementById('s-tel').value,
+    email: document.getElementById('s-email').value,
+    capital: document.getElementById('s-capital').value,
+    ice: document.getElementById('s-ice').value,
+    rc: document.getElementById('s-rc').value,
+    patente: document.getElementById('s-patente').value,
+    ifNum: document.getElementById('s-if').value,
+    cnss: document.getElementById('s-cnss').value,
+    rib: document.getElementById('s-rib').value,
+    logo: document.getElementById('s-logo').value,
+    tvaDefault: parseFloat(document.getElementById('s-tva').value)||20,
+    prefixDevis: document.getElementById('s-prefix-devis').value,
+    prefixFac: document.getElementById('s-prefix-fac').value,
+    conditions: document.getElementById('s-conditions').value,
+    mentions: document.getElementById('s-mentions').value,
+  };
+  try {
+    await updateSettings(settings);
+    state.settings = settings;
+    toast('Paramètres enregistrés !');
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// INVOICE TEMPLATE
+// ═══════════════════════════════════════════════════════════════════
+
+function loadInvoiceTemplateForm() {
+  const config = state.invoiceTemplate;
+  if (config.columns) {
+    document.querySelectorAll('#column-toggle input[type="checkbox"]').forEach(cb => {
+      cb.checked = config.columns.includes(cb.value);
+    });
+  }
+  document.getElementById('template-logo-position').value = config.logoPosition || 'left';
+  document.getElementById('template-custom-fields').value = (config.customFields || []).join('\n');
+}
+
+window.saveInvoiceTemplate = async function() {
+  const checked = document.querySelectorAll('#column-toggle input[type="checkbox"]:checked');
+  const columns = Array.from(checked).map(cb => cb.value);
+  const customFields = document.getElementById('template-custom-fields').value
+    .split('\n').filter(line => line.trim());
+  const config = {
+    columns,
+    order: columns,
+    customFields,
+    logoPosition: document.getElementById('template-logo-position').value,
+    numbering: state.invoiceTemplate.numbering || {
+      devisPrefix: state.settings.prefixDevis || 'DEV',
+      facturePrefix: state.settings.prefixFac || 'FAC',
+      separator: '/',
+      padding: 3,
+      resetYearly: true
+    }
+  };
+  try {
+    await updateInvoiceTemplate(config);
+    state.invoiceTemplate = config;
+    toast('Template de facture enregistré !');
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// GOOGLE DRIVE
+// ═══════════════════════════════════════════════════════════════════
+
+window.connectDrive = async function() {
+  try {
+    const response = await fetch('/api/drive/auth-url', {
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+    const data = await response.json();
+    if (data.url) {
+      window.open(data.url, '_blank');
+      toast('Redirection vers Google Drive...', 'info');
+    }
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.backupToDrive = async function() {
+  try {
+    toast('Sauvegarde en cours...', 'info');
+    const response = await fetch('/api/drive/backup', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+    const data = await response.json();
+    if (data.success) {
+      toast('✅ Sauvegarde sur Drive : ' + data.fileName);
+    } else {
+      toast('Erreur: ' + data.error, 'error');
+    }
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.listDriveBackups = async function() {
+  try {
+    const response = await fetch('/api/drive/backups', {
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+    const files = await response.json();
+    const container = document.getElementById('drive-files-list');
+    const listDiv = document.getElementById('drive-backups-list');
+    if (files && files.length > 0) {
+      listDiv.style.display = 'block';
+      container.innerHTML = files.map(f => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <span>📄 ${f.name}</span>
+          <span style="color:var(--text-muted);font-size:11px;">${new Date(f.createdTime).toLocaleDateString('fr-FR')}</span>
+          <button class="btn btn-sm btn-success" onclick="restoreFromDrive('${f.id}')">↩️ Restaurer</button>
+        </div>
+      `).join('');
+    } else {
+      listDiv.style.display = 'block';
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Aucune sauvegarde trouvée.</p>';
+    }
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.restoreFromDrive = async function(fileId) {
+  if (!confirm('⚠️ Restaurer cette sauvegarde va remplacer toutes vos données actuelles. Continuer ?')) return;
+  try {
+    toast('Restauration en cours...', 'info');
+    const response = await fetch(`/api/drive/restore/${fileId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+    const data = await response.json();
+    if (data.success) {
+      toast('✅ Données restaurées ! Rafraîchissement...');
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      toast('Erreur: ' + data.error, 'error');
+    }
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+window.disconnectDrive = async function() {
+  if (!confirm('Déconnecter Google Drive ?')) return;
+  try {
+    await fetch('/api/drive/disconnect', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+    toast('Drive déconnecté');
+    document.getElementById('drive-status').innerHTML = 'État : <span class="badge badge-muted">Non connecté</span>';
+    document.getElementById('drive-backup-btn').disabled = true;
+    document.getElementById('drive-disconnect-btn').disabled = true;
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPORT / IMPORT / RESET
+// ═══════════════════════════════════════════════════════════════════
+
+window.exportAllData = function() {
+  const allData = {
+    version: '2.0',
+    exportDate: new Date().toISOString(),
+    clients: state.clients,
+    fournisseurs: state.fournisseurs,
+    products: state.products,
+    documents: state.documents,
+    settings: state.settings
+  };
+  const json = JSON.stringify(allData, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cie_sauvegarde_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('✅ Sauvegarde exportée');
+};
+
+window.importAllData = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!confirm('⚠️ Cela va remplacer toutes vos données. Continuer ?')) return;
+      // Importer les données via l'API de migration
+      const response = await fetch('/api/migration/import-local', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify({
+          clients: data.clients || [],
+          products: data.products || [],
+          quotes: data.documents?.filter(d => d.type === 'devis') || [],
+          invoices: data.documents?.filter(d => d.type === 'facture') || [],
+          settings: data.settings || {}
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast('✅ Données importées ! Rafraîchissement...');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        toast('Erreur: ' + result.error, 'error');
+      }
+    } catch (err) {
+      toast('Fichier invalide', 'error');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+};
+
+window.resetData = async function() {
+  if (!confirm('⚠️ ATTENTION : toutes vos données seront supprimées. Continuer ?')) return;
+  if (!confirm('Confirmer la réinitialisation ?')) return;
+  try {
+    // Supprimer toutes les données via API
+    const endpoints = ['/clients', '/fournisseurs', '/products', '/documents'];
+    for (const endpoint of endpoints) {
+      const items = await fetch(`/api${endpoint}`, {
+        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+      }).then(r => r.json());
+      for (const item of items) {
+        await fetch(`/api${endpoint}/${item.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+      }
+    }
+    toast('✅ Données réinitialisées');
+    location.reload();
+  } catch (err) {
+    toast('Erreur: ' + err.message, 'error');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// PDF GENERATION
+// ═══════════════════════════════════════════════════════════════════
+
+function buildPDFHTML(doc, type) {
+  const client = getClient(doc.clientId);
+  const {totalHT, tvaAmt, totalTTC} = docTotals(doc);
+  const s = state.settings;
+  const isDevis = type === 'devis';
+  const label = isDevis ? 'DEVIS' : 'FACTURE';
+  
+  // Utiliser le template personnalisé
+  const template = state.invoiceTemplate || {};
+  const columns = template.columns || ['ref', 'designation', 'unite', 'qte', 'prixUHT', 'totalHT', 'tva', 'totalTTC'];
+  const logoPosition = template.logoPosition || 'left';
+  const customFields = template.customFields || [];
+
+  // Générer les colonnes du tableau
+  const colLabels = {
+    ref: 'Réf',
+    designation: 'Désignation',
+    unite: 'Unité',
+    qte: 'Qté',
+    prixUHT: 'P.U. H.T',
+    totalHT: 'Total H.T',
+    tva: 'TVA',
+    totalTTC: 'Total T.T.C'
+  };
+  const colStyles = {
+    ref: 'width:60px;text-align:center;',
+    designation: '',
+    unite: 'width:50px;text-align:center;',
+    qte: 'width:50px;text-align:center;',
+    prixUHT: 'width:80px;text-align:right;',
+    totalHT: 'width:90px;text-align:right;',
+    tva: 'width:60px;text-align:right;',
+    totalTTC: 'width:90px;text-align:right;font-weight:700;'
+  };
+
+  const theadHTML = columns.map(col => 
+    `<th style="padding:7px 8px;text-align:left;font-weight:700;${colStyles[col]||''}">${colLabels[col]||col}</th>`
+  ).join('');
+
+  const linesHTML = (doc.lignes||[]).map(l => {
+    const cells = columns.map(col => {
+      let val = '';
+      if (col === 'ref') val = l.ref || '—';
+      else if (col === 'designation') val = l.designation;
+      else if (col === 'unite') val = l.unite;
+      else if (col === 'qte') val = fmtNum(l.qte);
+      else if (col === 'prixUHT') val = fmtNum(l.prixUHT);
+      else if (col === 'totalHT') val = fmtNum(l.totalHT);
+      else if (col === 'tva') val = (l.tva || doc.tva || 20) + '%';
+      else if (col === 'totalTTC') val = fmtNum(l.totalHT * (1 + (doc.tva||20)/100));
+      return `<td style="padding:6px 8px;border-bottom:1px solid #e8e8e8;${colStyles[col]||''}">${val}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  // Logo position
+  const logoFlex = logoPosition === 'left' ? 'flex-start' : logoPosition === 'center' ? 'center' : 'flex-end';
+  const logoHTML = s.logo ? `<div style="display:flex;justify-content:${logoFlex};margin-bottom:10px;"><img src="${s.logo}" style="height:50px;object-fit:contain;" alt="Logo"></div>` : '';
+
+  // Champs personnalisés
+  const customFieldsHTML = customFields.map(f => {
+    const parts = f.split(':');
+    return parts.length === 2 ? `<div style="font-size:9.5px;color:#555;"><strong>${parts[0].trim()} :</strong> ${parts[1].trim()}</div>` : '';
+  }).join('');
+
+  const ribLines = (s.rib||'').split('\n').join('<br>');
+
+  return `
+  <div style="font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff;padding:20px 25px;width:210mm;min-height:297mm;box-sizing:border-box;position:relative;">
+    <div style="height:4px;background:linear-gradient(90deg,#1B3A6B,#E8A020);margin-bottom:16px;border-radius:2px;"></div>
+    
+    ${logoHTML}
+    
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;border-bottom:2px solid #1B3A6B;padding-bottom:12px;">
+      <div>
+        <div style="font-size:17px;font-weight:900;color:#1B3A6B;text-transform:uppercase;letter-spacing:0.5px;">${s.nom||"COMPTOIR INDUSTRIEL D'ERRACHIDIA SARL"}</div>
+        <div style="font-size:8.5px;color:#666;margin-top:3px;font-style:italic;">${s.tagline||''}</div>
+        ${customFieldsHTML}
+      </div>
+      <div style="text-align:right;font-size:9.5px;line-height:1.8;color:#444;">
+        <div>${s.adresse||''}</div>
+        <div>Tél/Fax : ${s.tel||''}</div>
+        <div>${s.email||''}</div>
+        <div>ICE : <strong>${s.ice||''}</strong></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+      <div>
+        <div style="font-size:20px;font-weight:900;color:#1B3A6B;text-transform:uppercase;letter-spacing:1px;">${label}</div>
+        <div style="font-size:12px;font-weight:700;color:#444;margin-top:2px;">${doc.numero}</div>
+        <div style="font-size:10px;color:#666;margin-top:6px;">En date du : <strong>${fmtDate(doc.date)}</strong></div>
+      </div>
+      <div style="background:#F8FAFC;border:1px solid #ddd;border-radius:6px;padding:10px 14px;min-width:220px;">
+        <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:#888;letter-spacing:0.8px;margin-bottom:4px;">${isDevis ? 'Destinataire' : 'Doit :'}</div>
+        <div style="font-size:13px;font-weight:700;color:#1B3A6B;">${client?.nom||'—'}</div>
+        ${client?.adresse ? `<div style="font-size:9.5px;color:#555;margin-top:2px;">${client.adresse}${client.ville?', '+client.ville:''}</div>` : ''}
+        ${client?.ice ? `<div style="font-size:9.5px;color:#555;">ICE : ${client.ice}</div>` : ''}
+        ${client?.tel ? `<div style="font-size:9.5px;color:#555;">Tél : ${client.tel}</div>` : ''}
+      </div>
+    </div>
+
+    ${doc.objet ? `<div style="margin-bottom:12px;font-size:10.5px;background:#EFF6FF;border-left:3px solid #1B3A6B;padding:8px 12px;border-radius:0 4px 4px 0;"><strong style="color:#1B3A6B;">Objet :</strong> ${doc.objet}</div>` : ''}
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:10px;">
+      <thead>
+        <tr style="background:#1B3A6B;color:#fff;">${theadHTML}</tr>
+      </thead>
+      <tbody>${linesHTML}</tbody>
+    </table>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;min-width:260px;">
+        <div style="display:flex;justify-content:space-between;padding:7px 14px;font-size:10.5px;border-bottom:1px solid #eee;">
+          <span style="color:#666;">Total H.T :</span>
+          <span style="font-weight:600;">${fmtNum(totalHT)} MAD</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 14px;font-size:10.5px;border-bottom:1px solid #eee;">
+          <span style="color:#666;">TVA (${doc.tva||20}%) :</span>
+          <span>${fmtNum(tvaAmt)} MAD</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;font-weight:700;background:#1B3A6B;color:#fff;">
+          <span>Total T.T.C :</span>
+          <span>${fmtNum(totalTTC)} MAD</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:10.5px;font-style:italic;color:#1e3a8a;">
+      <strong style="font-style:normal;font-size:9px;display:block;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:3px;">Arrêté à la somme de :</strong>
+      ${numberToWords(totalTTC)}
+    </div>
+
+    ${doc.notes ? `<div style="margin-bottom:14px;font-size:9.5px;color:#555;border-top:1px dashed #ddd;padding-top:10px;"><strong>Conditions :</strong><br>${doc.notes.replace(/\n/g,'<br>')}</div>` : ''}
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+      <div style="border:1px solid #ddd;border-radius:6px;padding:14px 24px;text-align:center;width:180px;">
+        <div style="font-size:9px;text-transform:uppercase;font-weight:600;color:#666;margin-bottom:50px;">${isDevis ? 'Bon pour accord' : 'Cachet & Signature'}</div>
+        <div style="height:1px;background:#ddd;"></div>
+      </div>
+    </div>
+
+    <div style="border-top:1.5px solid #1B3A6B;padding-top:8px;text-align:center;font-size:8.5px;color:#555;line-height:2;">
+      <div style="font-weight:700;color:#1B3A6B;">${s.nom||"COMPTOIR INDUSTRIEL D'ERRACHIDIA SARL"}</div>
+      <div>Capital : ${s.capital||'200 000 DH'} — ICE : ${s.ice||'001585740000044'} — RC : ${s.rc||'2859/483'} — Patente : ${s.patente||'19209831'} — IF : ${s.ifNum||'4140607'} — CNSS : ${s.cnss||'7020431'}</div>
+      <div>${s.mentions||''}</div>
+      <div>${ribLines}</div>
+    </div>
+  </div>`;
+}
+
+window.printDoc = function(id) {
+  const doc = state.documents.find(d => d.id === id);
+  if (!doc) return;
+  generatePDF(doc, doc.type);
+};
+
+window.printDocument = function() {
+  const lignes = collectLines();
+  const clientId = document.getElementById('doc-client').value;
+  if (!clientId || !lignes.length) { toast('Remplissez le formulaire avant d\'imprimer', 'warning'); return; }
+  const tmpDoc = {
+    id: 'tmp',
+    numero: document.getElementById('doc-numero').value,
+    date: document.getElementById('doc-date').value,
+    clientId,
+    objet: document.getElementById('doc-objet').value,
+    tva: parseFloat(document.getElementById('doc-tva').value)||20,
+    lignes,
+    notes: document.getElementById('doc-notes').value,
+  };
+  generatePDF(tmpDoc, editingDocType);
+};
+
+function generatePDF(doc, type) {
+  const html = buildPDFHTML(doc, type);
+  const el = document.getElementById('pdf-template');
+  el.innerHTML = html;
+  el.style.display = 'block';
+  const client = getClient(doc.clientId);
+  const filename = `${doc.numero.replace(/\//g,'-')}_${client?.nom?.replace(/\s+/g,'_')||'client'}.pdf`;
+  const opt = {
+    margin: [0,0,0,0],
+    filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  html2pdf().from(el).set(opt).save().then(() => { 
+    el.style.display = 'none'; 
+    el.innerHTML = ''; 
+    toast('PDF généré : ' + filename);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTO BACKUP
+// ═══════════════════════════════════════════════════════════════════
+
+let autoBackupInterval = null;
+
+function initAutoBackup() {
+  if (autoBackupInterval) clearInterval(autoBackupInterval);
+  autoBackupInterval = setInterval(() => {
+    // Sauvegarde auto dans localStorage (backup de secours)
+    try {
+      const backup = {
+        timestamp: Date.now(),
+        clients: state.clients,
+        fournisseurs: state.fournisseurs,
+        products: state.products,
+        documents: state.documents,
+        settings: state.settings
+      };
+      localStorage.setItem('cie_autobackup', JSON.stringify(backup));
+      document.getElementById('last-autobackup').textContent = new Date().toLocaleString('fr-FR');
+    } catch(e) {}
+  }, 300000); // 5 minutes
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DETECTION PRIVÉE
+// ═══════════════════════════════════════════════════════════════════
+
+function detectPrivateMode() {
+  try {
+    const test = 'test';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return false;
+  } catch(e) {
+    return true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════════
+
+// Exposer les fonctions globales
+window.calcTotals = calcTotals;
+window.addLineItem = addLineItem;
+
+// Démarrer l'application
+document.addEventListener('DOMContentLoaded', async () => {
+  await initApp();
+  
+  // Détecter navigation privée
+  if (detectPrivateMode()) {
+    document.getElementById('private-mode-alert').style.display = 'block';
+    toast('⚠️ Navigation privée détectée', 'warning');
+  }
+});
+
+console.log('🚀 CIE Gestion Commerciale v2.0 — SaaS');
+console.log('📊 Connecté à l\'API:', 'http://localhost:5000/api');
+console.log('👤 Utilisateur:', localStorage.getItem('cie_user') || 'Non connecté');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id               String        @id @default(uuid())
+  name             String
+  emailContact     String?
+  settings         Json          @default("{}")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  
+  users            User[]
+  driveTokens      GoogleDriveToken?
+  clients          Client[]
+  fournisseurs     Fournisseur[]
+  products         Product[]
+  documents        Document[]
+  invoiceTemplates InvoiceTemplate?
+}
+
+model User {
+  id           String   @id @default(uuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  lastLoginAt  DateTime @default(now())
+}
+
+model GoogleDriveToken {
+  id           String   @id @default(uuid())
+  companyId    String   @unique
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  refreshToken String   // Chiffré
+  accessToken  String   // Chiffré
+  expiresAt    DateTime
+  folderId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Client {
+  id           String   @id @default(uuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nom          String
+  type         String   @default("Entreprise")
+  ice          String?
+  rc           String?
+  ifNum        String?
+  cnss         String?
+  tel          String?
+  email        String?
+  adresse      String?
+  ville        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  documents    Document[]
+}
+
+model Fournisseur {
+  id           String   @id @default(uuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  nom          String
+  type         String   @default("Entreprise")
+  ice          String?
+  rc           String?
+  ifNum        String?
+  cnss         String?
+  tel          String?
+  email        String?
+  adresse      String?
+  ville        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  products     Product[]
+}
+
+model Product {
+  id             String        @id @default(uuid())
+  companyId      String
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code           String
+  designation    String
+  unite          String        @default("U")
+  prixHT         Float
+  categorie      String        @default("Autre")
+  tva            Int           @default(20)
+  fournisseurId  String?
+  fournisseur    Fournisseur?  @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Document {
+  id           String   @id @default(uuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  type         String   // "devis" | "facture"
+  numero       String
+  date         DateTime
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  objet        String?
+  tva          Int      @default(20)
+  statut       String   @default("en_attente")
+  notes        String?
+  lignes       Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model InvoiceTemplate {
+  id           String   @id @default(uuid())
+  companyId    String   @unique
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  config       Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
